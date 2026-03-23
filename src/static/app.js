@@ -569,6 +569,12 @@ document.addEventListener("DOMContentLoaded", () => {
         `
         }
       </div>
+      <div class="share-section">
+        <span class="share-label">Share:</span>
+        <button class="share-btn share-twitter" title="Share on X (Twitter)" aria-label="Share on X (Twitter)">𝕏</button>
+        <button class="share-btn share-facebook" title="Share on Facebook" aria-label="Share on Facebook">f</button>
+        <button class="share-btn share-copy" title="Copy activity link" aria-label="Copy activity link to clipboard">🔗 Copy</button>
+      </div>
     `;
 
     // Add click handlers for delete buttons
@@ -586,6 +592,35 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
     }
+
+    // Add click handlers for share buttons
+    const shareUrl = `${window.location.origin}${window.location.pathname}?activity=${encodeURIComponent(name)}`;
+    const shortDescription = details.description.length > 150
+      ? details.description.slice(0, 150) + "…"
+      : details.description;
+    const shareText = `Check out "${name}" at Mergington High School! ${shortDescription}`;
+
+    activityCard.querySelector(".share-twitter").addEventListener("click", () => {
+      const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+    });
+
+    activityCard.querySelector(".share-facebook").addEventListener("click", () => {
+      const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+    });
+
+    activityCard.querySelector(".share-copy").addEventListener("click", () => {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          showMessage("Activity link copied to clipboard!", "success");
+        }).catch(() => {
+          showMessage(`Copy this link: ${shareUrl}`, "info");
+        });
+      } else {
+        showMessage(`Copy this link: ${shareUrl}`, "info");
+      }
+    });
 
     activitiesList.appendChild(activityCard);
   }
@@ -861,8 +896,26 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeRangeFilter,
   };
 
+  // Highlight and scroll to a specific activity if ?activity= is in the URL
+  function handleActivityShareLink() {
+    const params = new URLSearchParams(window.location.search);
+    const targetActivity = params.get("activity");
+    if (!targetActivity) return;
+
+    // Find the card whose h4 matches the activity name
+    const cards = document.querySelectorAll(".activity-card");
+    for (const card of cards) {
+      const heading = card.querySelector("h4");
+      if (heading && heading.textContent.trim() === targetActivity) {
+        card.classList.add("shared-highlight");
+        card.scrollIntoView({ behavior: "smooth", block: "center" });
+        break;
+      }
+    }
+  }
+
   // Initialize app
   checkAuthentication();
   initializeFilters();
-  fetchActivities();
+  fetchActivities().then(handleActivityShareLink);
 });
